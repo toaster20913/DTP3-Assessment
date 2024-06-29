@@ -32,9 +32,12 @@ def browse_directory():
 def update_file_list(directory_path):
     file_list.delete(0, 'end')
     filter_text = name_filter_var.get().lower()
+    count = 0  # Initialize file count
     for filename in os.listdir(directory_path):
         if filter_text in filename.lower():
             file_list.insert('end', filename)
+            count += 1  # Increment file count
+    file_count_var.set(f"File Count: {count}")  # Update file count display
 
 # Function to apply name filter
 def apply_filter():
@@ -74,6 +77,8 @@ def check_files_and_assign_points():
 
     for filename in os.listdir(directory_path):
         if name_filter_var.get().lower() in filename.lower():
+            current_file_var.set(f"Processing file: {filename}")
+            root.update_idletasks()  # Update the GUI
             file_path = os.path.join(directory_path, filename)
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
@@ -101,6 +106,8 @@ def check_files_and_assign_points():
                 messagebox.showerror("Error", f"Error processing file {filename}: {e}")
                 return
 
+    # Clear the current file label after processing
+    current_file_var.set("Processing complete.")
     # Display the results
     display_results(club_points)
 
@@ -216,6 +223,14 @@ file_list.pack(side='left', fill='both', expand=True)
 # Bind double-click event to open the file
 file_list.bind('<Double-1>', open_file)
 
+# Frame for file count
+file_count_frame = ctk.CTkFrame(root)
+file_count_frame.pack(pady=10)
+
+file_count_var = StringVar(value="File Count: 0")
+file_count_label = ctk.CTkLabel(file_count_frame, textvariable=file_count_var)
+file_count_label.pack()
+
 # Frame for buttons
 button_frame = ctk.CTkFrame(root)
 button_frame.pack(pady=10)
@@ -227,6 +242,14 @@ check_files_button.grid(row=0, column=0, padx=5)
 # Button to toggle between dark mode and light mode (Main Window)
 toggle_mode_button_main = ctk.CTkButton(button_frame, text="Toggle Dark/Light Mode", command=toggle_mode)
 toggle_mode_button_main.grid(row=0, column=1, padx=5)
+
+# Frame for current file being processed
+current_file_frame = ctk.CTkFrame(root)
+current_file_frame.pack(pady=10)
+
+current_file_var = StringVar(value="No file being processed")
+current_file_label = ctk.CTkLabel(current_file_frame, textvariable=current_file_var)
+current_file_label.pack()
 
 # Run the application
 root.mainloop()
