@@ -2,8 +2,9 @@ import os
 import platform
 import subprocess
 import tkinter as tk
-from tkinter import filedialog, messagebox, Listbox, Scrollbar, Toplevel, StringVar
+from tkinter import filedialog, messagebox, Listbox, Scrollbar, StringVar
 import customtkinter as ctk
+import csv
 
 # Username: username
 # Password: password
@@ -63,10 +64,11 @@ def open_file(event):
 
 # Function to assign points based on placement
 def assign_points(placement):
+    if placement <= 0:  # No points for DQ or DNS (placement <= 0)
+        return 0
     points = 9 - placement
     return max(points, 1)  # Ensure minimum points is 1
 
-# Function to check files and calculate points for clubs
 def check_files_and_assign_points():
     directory_path = directory_var.get()
     if not directory_path:
@@ -78,7 +80,8 @@ def check_files_and_assign_points():
     for filename in os.listdir(directory_path):
         if name_filter_var.get().lower() in filename.lower():
             current_file_var.set(f"Processing file: {filename}")
-            root.update_idletasks()  # Update the GUI
+            root.update_idletasks()  # Force update the GUI
+
             file_path = os.path.join(directory_path, filename)
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
@@ -92,12 +95,13 @@ def check_files_and_assign_points():
                     return
 
             try:
-                for i, line in enumerate(lines[1:9]):  # Only consider lines 2 to 9 (1-indexed)
+                for i, line in enumerate(lines[1:]):
                     columns = line.split(',')
                     if len(columns) > 5:
                         club_name = columns[5].strip()  # Using the 6th column for club names
+                        if club_name.upper() in ["DQ", "DNS"]:
+                            continue  # Skip DQ or DNS entries
                         points = assign_points(i + 1)
-                        print(f"Processing line {i+1}: Club {club_name}, Placement {i+1}, Points {points}")  # Debugging print
                         if club_name in club_points:
                             club_points[club_name] += points
                         else:
@@ -108,33 +112,33 @@ def check_files_and_assign_points():
 
     # Clear the current file label after processing
     current_file_var.set("Processing complete.")
-    # Display the results
-    display_results(club_points)
+    root.update_idletasks()  # Ensure the final update to the GUI
 
-# Function to display results in a new window
-def display_results(club_points):
-    results_window = Toplevel(root)
-    results_window.title("Results")
+    # Write results to a CSV file
+    save_results_to_txt(club_points)
 
-    results_frame = ctk.CTkFrame(results_window)
-    results_frame.pack(pady=10, padx=10, fill='both', expand=True)
+def save_results_to_txt(club_points):
+    results_file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
+    if not results_file_path:
+        return
 
-    scrollbar = Scrollbar(results_frame, orient='vertical')
-    scrollbar.pack(side='right', fill='y')
+    try:
+        with open(results_file_path, 'w', newline='', encoding='utf-8') as txtfile:
+            sorted_clubs = sorted(club_points.items(), key=lambda item: item[1], reverse=True)
+            for club, points in sorted_clubs:
+                txtfile.write(f'{club},{points}\n')
 
-    results_listbox = Listbox(results_frame, yscrollcommand=scrollbar.set, width=50, height=20)
-    results_listbox.pack(side='left', fill='both', expand=True)
-    scrollbar.config(command=results_listbox.yview)
+        messagebox.showinfo("Success", f"Results saved to {results_file_path}")
 
-    sorted_clubs = sorted(club_points.items(), key=lambda item: item[1], reverse=True)
-
-    # Highlight the club with the most points
-    if sorted_clubs:
-        top_club = sorted_clubs[0]
-        results_listbox.insert('end', f"Top Club: {top_club[0]} with {top_club[1]} points")
-
-    for i, (club, points) in enumerate(sorted_clubs):
-        results_listbox.insert('end', f"{i+1}. {club}: {points} points")
+        # Automatically open the file in Notepad
+        if platform.system() == 'Windows':
+            os.startfile(results_file_path)
+        elif platform.system() == 'Darwin':  # macOS
+            subprocess.call(('open', results_file_path))
+        else:  # linux variants
+            subprocess.call(('xdg-open', results_file_path))
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to save results: {e}")
 
 # Function to toggle between dark mode and light mode
 def toggle_mode():
