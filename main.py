@@ -16,11 +16,19 @@ ctk.set_default_color_theme("blue")  # Themes: "blue" (default), "green", "dark-
 
 # Function to check login
 def check_login():
-    if username_var.get().strip() == "username" and password_var.get().strip() == "password":
+    username = username_var.get().strip()
+    password = password_var.get().strip()
+
+    if len(password) > 15:
+        messagebox.showerror("Error", "Password is too long (maximum 15 characters)")
+        return
+
+    if username == "username" and password == "password":
         login_window.destroy()
         root.deiconify()  # Show the main window
     else:
         messagebox.showerror("Error", "Invalid username or password")
+
 
 # Function to browse directory
 def browse_directory():
