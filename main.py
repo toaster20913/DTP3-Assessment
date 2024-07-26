@@ -107,13 +107,15 @@ def check_files_and_assign_points():
                     columns = line.split(',')
                     if len(columns) > 5:
                         club_name = columns[5].strip()  # Using the 6th column for club names
-                        if club_name.upper() in ["DQ", "DNS"]:
-                            continue  # Skip DQ or DNS entries
+                        if not club_name or club_name.upper() in ["DQ", "DNS"]:
+                            continue  # Skip empty names, DQ, or DNS entries
                         points = assign_points(i + 1)
                         if club_name in club_points:
                             club_points[club_name] += points
                         else:
                             club_points[club_name] = points
+                    else:
+                        print(f"Line {i+1} is missing columns: {line.strip()}")
             except Exception as e:
                 messagebox.showerror("Error", f"Error processing file {filename}: {e}")
                 return
@@ -124,6 +126,7 @@ def check_files_and_assign_points():
 
     # Write results to a CSV file
     save_results_to_txt(club_points)
+
 
 def save_results_to_txt(club_points):
     results_file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
